@@ -1,6 +1,7 @@
 import { Component, OnInit } from '@angular/core';
 import { Pensamento } from '../pensamento';
 import { PensamentoService } from '../pensamento.service';
+import { Router } from '@angular/router';
 
 @Component({
   selector: 'app-listar-pensamento',
@@ -9,33 +10,61 @@ import { PensamentoService } from '../pensamento.service';
 })
 export class ListarPensamentoComponent implements OnInit {
 
-  listaPensamentos: Pensamento[] = [
-    /*{
-      id: 1,
-      conteudo: 'Passo informações para o componente filho',
-      autoria: 'Componente pai',
-      modelo: 'modelo3'
-    },
-    {
-      id: 2,
-      conteudo: 'Minha propriedade é decorada com @Input',
-      autoria: 'Componente filho',
-      modelo: 'modelo2'
-    },
-    {
-      id: 3,
-      conteudo: 'Mussum Ipsum, cacilds vidis litro abertis. Posuere libero varius. Nullam a nisl ut ante blandit hendrerit. Aenean sit amet nisi. Diuretics paradis num copo é motivis de denguis. Atirei o pau no gatis, per gatis num morreus. Interessantiss quisso pudia ce receita de bolis, mais bolis eu num gostis. Sapien in monti palavris qui num significa nadis i pareci latim.',
-      autoria: 'Pensamento Grande',
-      modelo: 'modelo1'
-    }*/
-  ]
+  listaPensamentos: Pensamento[] = []
+  paginaAtual: number = 1
+  haMaisPensamentos: boolean = true
+  filtro: string = ''
+  favoritos: boolean = false
+  listaFavoritos: Pensamento[] = []
+  titulo: string = "Meu Mural"
 
-  constructor(private service: PensamentoService) { }
+  constructor(
+    private service: PensamentoService,
+    private router: Router
+  ) { }
 
   ngOnInit(): void {
-    this.service.listar().subscribe((listaPensamentos) => {
+    this.service.listar(this.paginaAtual, this.filtro, this.favoritos).subscribe((listaPensamentos) => {
       this.listaPensamentos = listaPensamentos
     })
   }
 
+  carregarMaisPensamentos() {
+    this.service.listar(++this.paginaAtual, this.filtro, this.favoritos)
+      .subscribe((listaPensamentos) => {
+        this.listaPensamentos.push(...listaPensamentos);
+        if(!listaPensamentos.length) {
+          this.haMaisPensamentos = false;
+        }
+      })
+  }
+
+  pesquisarPensamentos() {
+    this.haMaisPensamentos = true;
+    this.paginaAtual = 1;
+    this.service.listar(this.paginaAtual, this.filtro, this.favoritos)
+      .subscribe((listaPensamentos) => {
+        this.listaPensamentos = listaPensamentos
+      })
+  }
+
+  recarregarComponente() {
+    this.favoritos = false
+    this.paginaAtual = 1
+    this.router.routeReuseStrategy.shouldReuseRoute = () => false
+    this.router.onSameUrlNavigation = 'reload'
+    this.router.navigate([this.router.url])
+  }
+
+  listarFavoritos() {
+    this.titulo = "Meus Favoritos"
+    this.favoritos = true
+    this.haMaisPensamentos = true
+    this.paginaAtual = 1
+    this.service.listar(this.paginaAtual, this.filtro, this.favoritos)
+      .subscribe((listaPensamentosFavoritos) => {
+        this.listaPensamentos = listaPensamentosFavoritos
+        this.listaFavoritos = listaPensamentosFavoritos
+      })
+  }
 }
